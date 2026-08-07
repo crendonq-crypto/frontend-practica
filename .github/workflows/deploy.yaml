@@ -1,0 +1,74 @@
+name: CI/CD Pipeline Frontend
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  DOCKER_REGISTRY: docker.io
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/frontend-practica
+
+jobs:
+  # 1. Ejecutar Pruebas Unitarias
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+  # 2. Construir y Publicar la Imagen en Docker Hub
+  build-and-push:
+    name: Build & Push Docker Image
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:v1.0.0-practica
+          build-args: |
+            APP_ENV=${{ secrets.APP_ENV }}
+
+  # 3. Notificaciones (Opcional)
+  notifications:
+    name: Send Notifications
+    needs: [test, build-and-push]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Test succeeded?
+        if: ${{ success() }}
+        run: echo "Build and Tests Succeeded!"
+
+      - name: Send Slack Notification on Failure
+        if: ${{ failure() && secrets.SLACK_WEBHOOK_URL != '' }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+          --data '{"text":"❌ Error: El flujo de CI/CD para ${{ env.IMAGE_NAME }} ha fallado."}' \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
