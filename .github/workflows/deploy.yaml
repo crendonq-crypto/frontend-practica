@@ -66,9 +66,9 @@ jobs:
         if: ${{ success() }}
         run: echo "Build and Tests Succeeded!"
 
-      - name: Send Slack Notification on Failure
-        if: ${{ failure() && secrets.SLACK_WEBHOOK_URL != '' }}
-        run: |
-          curl -X POST -H 'Content-type: application/json' \
-          --data '{"text":"❌ Error: El flujo de CI/CD para ${{ env.IMAGE_NAME }} ha fallado."}' \
-          ${{ secrets.SLACK_WEBHOOK_URL }}
+#      - name: Send Slack Notification on Failure
+#        if: ${{ failure() && secrets.SLACK_WEBHOOK_URL != '' }}
+#        run: |
+#          curl -X POST -H 'Content-type: application/json' \
+#          --data '{"text":"❌ Error: El flujo de CI/CD para ${{ env.IMAGE_NAME }} ha fallado."}' \
+#          ${{ secrets.SLACK_WEBHOOK_URL }}
